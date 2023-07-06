@@ -18,6 +18,7 @@ This is a Python-based application for controlling the fan speed of a Raspberry 
 ## Configuration
 The application uses a configuration file (config.json) to specify MQTT and fan-related settings. Before running the application, make sure to update the config.json file with your specific configuration:
 
+```json
 {
   "mqtt": {
     "broker": "your_broker_ip",
@@ -36,6 +37,7 @@ The application uses a configuration file (config.json) to specify MQTT and fan-
     "hysteresis": 1
   }
 }
+```
 
 - "broker": IP address or hostname of the MQTT broker.
 - "port": Port number of the MQTT broker.
