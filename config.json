@@ -1,0 +1,18 @@
+{
+    "mqtt": {
+      "broker": "10.5.16.100",
+      "port": 1883,
+      "topic_temperature": "tele/lcpsrv/cpu-temp",
+      "topic_fan_speed": "tele/lcpsrv/fan-speed",
+      "topic_control": "fan_control",
+      "topic_manual_speed": "manual_fan_speed"
+    },
+    "fan": {
+      "pin": 12,
+      "wait_time": 1,
+      "pwm_freq": 60,
+      "temp_steps": [55, 70],
+      "speed_steps": [30, 100],
+      "hysteresis": 1
+    }
+  }
