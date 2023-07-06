@@ -49,6 +49,10 @@ fanSpeed = 100
 cpuTempOld = 0
 fanSpeedOld = 0
 
+# Setup timers
+last_publish_time = time.time()
+publish_interval = 5
+
 # MQTT client instance
 mqtt_client = None
 
