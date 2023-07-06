@@ -1,21 +1,21 @@
-fanctrl - RaspberryPi Advanced Fan Control
+# fanctrl - RPi Advanced Fan Control
 
 This is a Python-based application for controlling the fan speed of a Raspberry Pi based on the CPU temperature. The fan control is implemented using the Raspberry Pi's GPIO pins and can be controlled automatically based on the temperature or manually via MQTT commands.
 
-Prerequisites
+## Prerequisites
 - Raspberry Pi with Raspbian OS (or compatible)
 - Python 3.x
 - RPi.GPIO library (RPi.GPIO)
 - Paho MQTT library (paho.mqtt.client)
 
-Installation
+## Installation
 1. Clone the repository to your Raspberry Pi:
    git clone https://github.com/your-username/fan-control-application.git
 
 2. Install the required Python libraries:
    pip install RPi.GPIO paho-mqtt
 
-Configuration
+## Configuration
 The application uses a configuration file (config.json) to specify MQTT and fan-related settings. Before running the application, make sure to update the config.json file with your specific configuration:
 
 {
@@ -50,7 +50,7 @@ The application uses a configuration file (config.json) to specify MQTT and fan-
 - "speed_steps": Corresponding fan speed steps for the temperature steps.
 - "hysteresis": Temperature difference at which the fan speed will change.
 
-Usage
+## Usage
 1. Run the fan control application:
    python fan_control.py
 
@@ -65,7 +65,7 @@ Usage
 4. Set the manual fan speed:
    - Publish the desired fan speed value as a float number to the MQTT topic specified in "topic_manual_speed". The value represents the fan speed as a percentage (e.g., 50.0 for 50% speed).
 
-License
+## License
 This application is licensed under the GNU General Public License v3.0.
 
 Please make sure to include the LICENSE file in your repository and update the documentation accordingly to reflect the correct license information.
