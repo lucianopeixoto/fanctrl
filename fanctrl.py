@@ -51,7 +51,7 @@ fanSpeedOld = 0
 
 # Setup timers
 last_publish_time = time.time()
-publish_interval = 5
+publish_interval = 2
 
 # MQTT client instance
 mqtt_client = None
