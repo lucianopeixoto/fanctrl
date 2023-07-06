@@ -1,0 +1,14 @@
+[Unit]
+Description=Pi PWM Fan Control
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 -u fanctrl.py
+WorkingDirectory=/home/pi/scripts/fanctrl
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
