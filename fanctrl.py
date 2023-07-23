@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 import RPi.GPIO as GPIO
 import time
 import sys
@@ -16,10 +13,11 @@ def load_config():
         config = json.load(f)
         mqtt_config = config["mqtt"]
         fan_config = config["fan"]
-        return mqtt_config, fan_config
+        pid_config = fan_config["pid"]
+        return mqtt_config, fan_config, pid_config
 
-# Get MQTT and fan configuration
-mqtt_config, fan_config = load_config()
+# Get MQTT, fan, and PID configuration
+mqtt_config, fan_config, pid_config = load_config()
 
 # Extract MQTT variables from the config
 MQTT_BROKER = mqtt_config["broker"]
@@ -33,25 +31,21 @@ MQTT_TOPIC_MANUAL_SPEED = mqtt_config["topic_manual_speed"]
 FAN_PIN = fan_config["pin"]
 WAIT_TIME = fan_config["wait_time"]
 PWM_FREQ = fan_config["pwm_freq"]
-tempSteps = fan_config["temp_steps"]
-speedSteps = fan_config["speed_steps"]
 hyst = fan_config["hysteresis"]
+
+# Extract PID controller variables from the config
+KP = pid_config["kp"]
+KI = pid_config["ki"]
+KD = pid_config["kd"]
+SETPOINT = pid_config["setpoint"]
+MIN_SPEED = pid_config["min_speed"]
+MAX_SPEED = pid_config["max_speed"]
 
 # Setup GPIO pin
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(FAN_PIN, GPIO.OUT, initial=GPIO.LOW)
 fan = GPIO.PWM(FAN_PIN, PWM_FREQ)
 fan.start(0)
-
-i = 0
-cpuTemp = 0
-fanSpeed = 100
-cpuTempOld = 0
-fanSpeedOld = 0
-
-# Setup timers
-last_publish_time = time.time()
-publish_interval = 2
 
 # MQTT client instance
 mqtt_client = None
@@ -72,7 +66,7 @@ def publish_values(temperature, fan_speed):
 
 # Callback function for MQTT message received
 def on_message(client, userdata, message):
-    global fanSpeed, fanSpeedOld
+    global fanSpeed
 
     if message.topic == MQTT_TOPIC_CONTROL:
         control_command = message.payload.decode("utf-8")
@@ -84,9 +78,8 @@ def on_message(client, userdata, message):
             # Disable automatic control
             fanSpeed = get_manual_fan_speed()
 
-        if fanSpeed != fanSpeedOld:
-            fan.ChangeDutyCycle(fanSpeed)
-            fanSpeedOld = fanSpeed
+        # Update fan speed
+        set_fan_speed(fanSpeed)
 
     elif message.topic == MQTT_TOPIC_MANUAL_SPEED:
         if control_command == "manual":
@@ -94,9 +87,8 @@ def on_message(client, userdata, message):
             manual_speed = float(message.payload.decode("utf-8"))
             fanSpeed = manual_speed
 
-            if fanSpeed != fanSpeedOld:
-                fan.ChangeDutyCycle(fanSpeed)
-                fanSpeedOld = fanSpeed
+            # Update fan speed
+            set_fan_speed(fanSpeed)
 
 # Subscribe to control and manual speed topics (only if MQTT is available)
 if mqtt_client:
@@ -107,8 +99,30 @@ if mqtt_client:
 else:
     # Automatic control by default without MQTT connection
     fanSpeed = calculate_fan_speed(cpuTemp)
-    fan.ChangeDutyCycle(fanSpeed)
-    fanSpeedOld = fanSpeed
+    set_fan_speed(fanSpeed)
+
+# PID controller variables
+lastError = 0.0
+integral = 0.0
+last_publish_time = time.time()
+publish_interval = pid_config["publish_interval"]
+
+# Calculate fan speed using PID controller
+def calculate_fan_speed(cpu_temp):
+    global lastError, integral
+
+    error = SETPOINT - cpu_temp
+    integral += error * WAIT_TIME
+    derivative = (error - lastError) / WAIT_TIME
+    fan_speed = KP * error + KI * integral + KD * derivative
+    fan_speed = min(max(fan_speed, MIN_SPEED), MAX_SPEED)
+
+    lastError = error
+    return fan_speed
+
+# Set fan speed
+def set_fan_speed(speed):
+    fan.ChangeDutyCycle(speed)
 
 try:
     while True:
@@ -117,25 +131,11 @@ try:
         cpuTemp = float(cpuTempFile.read()) / 1000
         cpuTempFile.close()
 
-        # Calculate desired fan speed
-        if abs(cpuTemp - cpuTempOld) > hyst:
-            # Below first value, fan will not run.
-            if cpuTemp < tempSteps[0]:
-                fanSpeed = 0
-            # Above last value, fan will run at max speed
-            elif cpuTemp >= tempSteps[-1]:
-                fanSpeed = speedSteps[-1]
-            # If temperature is between 2 steps, fan speed is calculated by linear interpolation
-            else:
-                for i in range(len(tempSteps) - 1):
-                    if tempSteps[i] <= cpuTemp < tempSteps[i + 1]:
-                        fanSpeed = round((speedSteps[i + 1] - speedSteps[i]) / (tempSteps[i + 1] - tempSteps[i]) * (cpuTemp - tempSteps[i]) + speedSteps[i], 1)
+        # Calculate fan speed using PID controller
+        fanSpeed = calculate_fan_speed(cpuTemp)
 
-            if fanSpeed != fanSpeedOld:
-                fan.ChangeDutyCycle(fanSpeed)
-                fanSpeedOld = fanSpeed
-
-            cpuTempOld = cpuTemp
+        # Update fan speed
+        set_fan_speed(fanSpeed)
 
         # Check if enough time has passed since the last publish (only if MQTT is available)
         if mqtt_client and (time.time() - last_publish_time >= publish_interval):
