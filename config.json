@@ -13,6 +13,6 @@
       "pwm_freq": 60,
       "temp_steps": [55, 70],
       "speed_steps": [30, 100],
-      "hysteresis": 1
+      "hysteresis": 10
     }
   }
